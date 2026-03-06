@@ -1,9 +1,6 @@
-"""PlanningAgent — handles PLAN intent for study plan generation.
+"""PlanAgent — study plan generation (Phase 2 consolidation).
 
-Borrows from:
-- HelloAgents PlannerAgent: structured planning workflow
-- smart-planner: calendar-aware scheduling, deadline management
-- Spec Section 5: create_study_plan tool
+Replaces: PlanningAgent. Essentially a rename with the same core logic.
 """
 
 import logging
@@ -18,10 +15,10 @@ from services.agent.state import AgentContext, InputRequirement
 logger = logging.getLogger(__name__)
 
 
-class PlanningAgent(ReActMixin, BaseAgent):
+class PlanAgent(ReActMixin, BaseAgent):
     """Generates and adjusts study plans based on deadlines, mastery, and preferences."""
 
-    name = "planning"
+    name = "planner"
     profile = (
         "You are OpenTutor Zenus's Study Planner.\n"
         "Create actionable, realistic study plans based on:\n"
@@ -37,7 +34,11 @@ class PlanningAgent(ReActMixin, BaseAgent):
         "- Output in clear markdown format"
     )
     model_preference = "large"
-    react_tools = ["lookup_progress", "get_mastery_report", "get_course_outline", "list_study_goals", "list_assignments", "create_study_plan", "export_calendar", "write_file", "list_files"]
+    react_tools = [
+        "lookup_progress", "get_mastery_report", "get_course_outline",
+        "list_study_goals", "list_assignments", "create_study_plan",
+        "export_calendar", "write_file", "list_files", "update_workspace",
+    ]
 
     def get_required_inputs(self) -> list[InputRequirement]:
         return [
@@ -67,7 +68,6 @@ class PlanningAgent(ReActMixin, BaseAgent):
         ]
 
     def build_system_prompt(self, ctx: AgentContext) -> str:
-        # Use base class for scene-aware prompt, then append planning-specific context
         base = super().build_system_prompt(ctx)
         parts = [base]
 
@@ -75,6 +75,14 @@ class PlanningAgent(ReActMixin, BaseAgent):
             parts.append("\n## Course Structure:\n")
             for doc in ctx.content_docs:
                 parts.append(f"- {doc.get('title', '')} (Level {doc.get('level', 0)})")
+
+        assignments = ctx.metadata.get("assignments", [])
+        if assignments:
+            parts.append("\n## Upcoming Deadlines:\n")
+            for a in assignments:
+                due = a.get("due_date", "No date")
+                atype = a.get("assignment_type", "unknown")
+                parts.append(f"- [{atype}] {a.get('title', 'Untitled')} — due {due}")
 
         return "\n".join(parts)
 
