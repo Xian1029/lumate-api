@@ -25,6 +25,12 @@ def test_ambiguous_heading_without_body_stays_unmapped() -> None:
     assert not item.metadata_
 
 
+def test_unique_heading_on_contents_page_is_not_treated_as_section() -> None:
+    item = node("第三章 有理数的运算", "")
+    assert annotate_nodes_from_page_text([item], ["目录 第三章 有理数的运算", "没有文字层的正文页"]) == 0
+    assert not item.metadata_
+
+
 def test_existing_mapping_is_never_overwritten() -> None:
     item = node("1.1 正数和负数", "足够长的正文用于匹配原始页面。")
     item.metadata_ = {"source_pages": [5]}

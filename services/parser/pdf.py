@@ -73,10 +73,8 @@ def annotate_nodes_from_page_text(nodes: list[CourseContentTree], pages: list[st
         if (node.metadata_ or {}).get("source_pages"):
             continue
         body = _page_match_text(node.content or "")
-        title = _page_match_text(node.title or "")
         anchors = [body[i:i + 20] for i in (0, 40, 100, 180) if len(body[i:i + 20]) == 20]
         body_hits = [i + 1 for i, page in enumerate(page_text) if any(anchor in page for anchor in anchors)]
-        title_hits = [i + 1 for i, page in enumerate(page_text) if len(title) >= 6 and title in page]
         if body_hits:
             # A repeated passage in distant parts of the book is ambiguous;
             # do not turn it into a misleading multi-chapter page range.
@@ -85,9 +83,6 @@ def annotate_nodes_from_page_text(nodes: list[CourseContentTree], pages: list[st
             first = min(body_hits)
             last = max(body_hits)
             confidence = "body"
-        elif len(title_hits) == 1 and len(title) >= 8:
-            first = last = title_hits[0]
-            confidence = "unique_title"
         else:
             continue
         node.metadata_ = {
